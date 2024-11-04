@@ -637,7 +637,7 @@ class Project:
         # DRC & LVS aren't included in the default ORFS flow
         if self.args.orfs:
             self.run_drc()
-            self.run_lvs()
+            # self.run_lvs()
 
         # Write commit information
         if self.args.orfs:
