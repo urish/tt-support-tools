@@ -16,7 +16,7 @@ from shuttle_index import ShuttleIndex, ShuttleIndexLayout, ShuttleIndexProject
 
 # Power gate macros for each PDK. We need to copy them to the multiplexer directory:
 SHUTTLE_PG_MACROS = {
-    "sky130": [
+    "sky130A": [
         "tt_pg_1v8_hp_1",
         "tt_pg_1v8_hp_2",
         "tt_pg_1v8_hp_4",
