@@ -2,8 +2,6 @@ import json
 import os
 from typing import Dict, List, Literal, Pattern, Protocol, Tuple, TypedDict, Union
 
-from git.repo import Repo
-
 TechName = Literal["sky130A", "ihp-sg13g2", "gf180mcuD"]
 
 
@@ -57,10 +55,12 @@ class Tech(Protocol):
         raise NotImplementedError()
 
 
-def parse_openpdks_pdk_version(sources_file: str) -> PDKVersionInfo:
+def parse_openpdks_pdk_version(
+    sources_file: str, expected_source: str = "open_pdks"
+) -> PDKVersionInfo:
     with open(sources_file) as f:
         pdk_source, pdk_version = f.read().strip().split(" ")
-        assert pdk_source == "open_pdks"
+        assert pdk_source == expected_source
         return PDKVersionInfo(source=pdk_source, version=pdk_version)
 
 
@@ -164,7 +164,7 @@ class IHPTech(Tech):
 
     def read_pdk_version(self, pdk_root: str) -> PDKVersionInfo:
         pdk_sources_file = os.path.join(pdk_root, "ihp-sg13g2", "SOURCES")
-        return parse_openpdks_pdk_version(pdk_sources_file)
+        return parse_openpdks_pdk_version(pdk_sources_file, "IHP-Open-PDK")
 
     def load_cell_definitions(self) -> Dict[str, CellDefinition]:
         URL_FORMAT = "https://raw.githubusercontent.com/IHP-GmbH/IHP-Open-PDK/refs/heads/main/ihp-sg13g2/libs.ref/sg13g2_stdcell/doc/sg13g2_stdcell_typ_1p20V_25C.pdf#{ref}"
