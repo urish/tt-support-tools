@@ -112,10 +112,62 @@ def klayout_zero_area(gds: str):
 
 
 def klayout_sg13g2(gds: str):
+    drc_script = f"{PDK_ROOT}/{PDK_NAME}/libs.tech/klayout/tech/drc/ihp-sg13g2.drc"
+
+    # Patch DRC deck to exclude SRAM macro regions (GDS layer 25/0).
+    # SRAM macros contain foundry-validated custom geometry that does not
+    # conform to standard DRC rules.
+    #
+    # Known SRAM-internal violations (all FEOL):
+    #   Sdiod.d  — ContBar width in nBuLay    (cont_drw, nbulay_drw)
+    #   Sdiod.e  — ContBar length in nBuLay   (cont_drw, nbulay_drw)
+    #   Cnt.c.digibnd — Contact enclosure by Active in DigiBnd (cont_drw, activ_drw)
+    #
+    sram_exclusion = """
+#================================================
+#---------- SRAM REGION EXCLUSION ---------------
+#================================================
+
+# SRAM macros (GDS layer 25/0) contain foundry-validated custom geometry
+# that does not conform to standard DRC rules. Subtract the SRAM bounding
+# region from FEOL layers so derived layers inherit the exclusion.
+if sram_drw.count > 0
+  logger.info("SRAM region detected. Excluding FEOL layers from DRC checks.")
+
+  sram_excl = sram_drw.sized(0.1.um)
+
+  activ_drw       = activ_drw.not(sram_excl)
+  gatpoly_drw     = gatpoly_drw.not(sram_excl)
+  psd_drw         = psd_drw.not(sram_excl)
+  nsd_drw         = nsd_drw.not(sram_excl)
+  nsd_block       = nsd_block.not(sram_excl)
+  cont_drw        = cont_drw.not(sram_excl)
+  nwell_drw       = nwell_drw.not(sram_excl)
+  nbulay_drw      = nbulay_drw.not(sram_excl)
+  pwell_block     = pwell_block.not(sram_excl)
+  salblock_drw    = salblock_drw.not(sram_excl)
+  thickgateox_drw = thickgateox_drw.not(sram_excl)
+end
+
+"""
+    with open(drc_script, "r") as f:
+        content = f.read()
+
+    marker = "#================================================\n# -------------------- UTILS --------------------"
+    if "sram_drw.not(sram_drw)" not in content and marker in content:
+        logging.info("Patching DRC deck with SRAM region exclusion")
+        content = content.replace(marker, sram_exclusion + marker)
+        drc_script = os.path.join(
+            os.path.dirname(drc_script), "ihp-sg13g2-sram-patched.drc"
+        )
+        with open(drc_script, "w") as f:
+            f.write(content)
+
     return klayout_drc(
         gds,
         "sg13g2",
-        f"{PDK_ROOT}/{PDK_NAME}/libs.tech/klayout/tech/drc/ihp-sg13g2.drc",
+        drc_script,
+        extra_vars={"precheck_drc": "true"},
     )
 
 
